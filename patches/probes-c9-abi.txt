@@ -1,0 +1,18 @@
+The probe list is source-checked against centos-stream-9-kernel-742,
+kernel-5.14.0-742.el9, commit c234fccc3093bbe4fbe7482b00e037d0810dc720.
+
+  fs/fuse/virtio_fs.c:1166: static int virtio_fs_enqueue_req(
+                           struct virtio_fs_vq *fsvq,
+                           struct fuse_req *req, bool in_flight)
+  fs/fuse/dev.c:280: void fuse_request_end(struct fuse_req *req)
+  fs/fuse/virtio_fs.c:602: static void virtio_fs_request_complete(struct fuse_req *req,
+                                         struct virtio_fs_vq *fsvq)
+
+The collector installs kprobe entry/return events for virtio_fs_enqueue_req and
+an entry event for virtio_fs_request_complete, after requiring each symbol in
+available_filter_functions or (for module functions) kallsyms. Entry request
+pointers and thread IDs are the correlation keys. The return probe records the
+signed function result as `ret=$retval`; it is associated with the entry request
+through the originating task, while completion is keyed by request pointer
+across worker threads. If symbols, tracefs, or permissions do not match,
+readiness explicitly reports no/partial probes.

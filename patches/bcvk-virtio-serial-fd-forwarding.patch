@@ -1,0 +1,26 @@
+diff --git a/crates/kit/src/run_ephemeral.rs b/crates/kit/src/run_ephemeral.rs
+--- a/crates/kit/src/run_ephemeral.rs
++++ b/crates/kit/src/run_ephemeral.rs
+@@ -999,3 +999,22 @@
+     // Handle --execute output files and virtio-serial devices
+     let mut all_serial_devices = opts.common.virtio_serial_out.clone();
++    if let Ok(specs) = std::env::var("BCVK_SERIAL_FDS") {
++        all_serial_devices.clear();
++        let mut fds = cap_std_ext::cmdext::CmdFds::new();
++        let mut forwarded = Vec::new();
++        for spec in specs.split(',').filter(|s| !s.is_empty()) {
++            let (name, fd) = spec.split_once(':').ok_or_else(|| eyre!("invalid BCVK_SERIAL_FDS entry"))?;
++            let fd: i32 = fd.parse().context("invalid BCVK_SERIAL_FDS fd")?;
++            use std::os::unix::io::{FromRawFd as _, IntoRawFd as _};
++            #[allow(unsafe_code)]
++            let file = unsafe { std::fs::File::from_raw_fd(fd) };
++            #[allow(unsafe_code)]
++            let owned = unsafe { rustix::fd::OwnedFd::from_raw_fd(file.into_raw_fd()) };
++            let n = fds.take_fd(std::sync::Arc::new(owned));
++            cmd.args(["--preserve-fd", &n.to_string()]);
++            forwarded.push(format!("{name}:fd:{n}"));
++        }
++        cmd.take_fds(fds);
++        all_serial_devices.extend(forwarded);
++    }
+     if !opts.common.execute.is_empty() {

@@ -1,0 +1,18 @@
+[Unit]
+Description=Early bootc virtiofs diagnostics collector
+DefaultDependencies=no
+After=local-fs-pre.target
+Before=sshd.service sshd.socket ssh.service ssh.socket
+Wants=dev-virtio\x2dports-org.bootc.debug.device
+After=dev-virtio\x2dports-org.bootc.debug.device
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+ExecStart=/usr/libexec/bootc-debug-collector
+TimeoutStartSec=30s
+NotifyAccess=main
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

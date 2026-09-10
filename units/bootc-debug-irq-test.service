@@ -1,0 +1,12 @@
+[Unit]
+Description=Optional guest virtio-fs IRQ affinity experiment
+ConditionPathExists=/sys/firmware/qemu_fw_cfg/by_name/opt/bootc-debug/irq-mode/raw
+After=bootc-debug-collector.service
+Conflicts=irqbalance.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/guest-irq-test --mode-from-fwcfg --duration-secs 90 --interval-ms 1000 --guest-confirm
+
+[Install]
+WantedBy=multi-user.target
