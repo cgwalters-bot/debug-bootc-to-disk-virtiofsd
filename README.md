@@ -46,6 +46,24 @@ An overrun makes request-lifecycle correlation inconclusive.
 `trace_reader_open=true|false`, and explicitly says `trace_lossless=false`.
 Service readiness is never treated as proof of lossless tracing.
 
+## Bounded foreground probe
+
+After the coordinator reviews the exact bcvk CLI shape, a foreground probe can
+be run with `cargo xtask probe --image "$IMAGE" --bcvk "$BCVK" --run-dir
+"$RUN_DIR" --timeout-secs 60 --execute`. `RUN_DIR` must already be an absolute
+directory. Without `--execute`, the command only prints planned argv and makes
+no files or external calls.
+
+The probe observes a foreground VM for 45--60 seconds; its timeout means the
+observation window ended, not that the VM itself hung. Separate launch,
+container-log, inspect, and removal logs are written under `RUN_DIR`. Before
+launch it rejects an existing name with `podman container exists`; afterward it
+captures `podman logs`, verifies limited JSON containing only the exact name
+and ownership label, and removes only that owned container. At 60 seconds the
+five bounded commands take at most about 135 seconds: 17 seconds for each
+10-second auxiliary command and 67 seconds for launch (deadline plus TERM/KILL
+grace). Command output never uses the caller's stdout/stderr pipes.
+
 ## Optional guest IRQ experiment
 
 The image also contains the deliberately opt-in `guest-irq-test` helper. It is
